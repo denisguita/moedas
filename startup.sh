@@ -3,4 +3,4 @@
 pip install -r requirements.txt
 
 # Iniciar o servidor Flask
-python3.11 app.py
+python3 app.py
