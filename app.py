@@ -11,6 +11,7 @@ import time
 from datetime import datetime
 import requests
 from telegram_service import TelegramAlertService
+import os # Adicionado para obter a porta do ambiente
 
 app = Flask(__name__)
 CORS(app)
@@ -37,21 +38,17 @@ alerts_history = []
 # Flag para controlar o monitoramento
 monitoring_active = True
 
-def schedule_daily_report():
-    """Agenda o envio do relatório diário para o Telegram."""
+def schedule_report():
+    """Agenda o envio do relatório para o Telegram a cada 20 minutos."""
     while monitoring_active:
-        now = datetime.now()
-        # Envia o relatório às 23:59 (quase meia-noite)
-        if now.hour == 23 and now.minute == 59:
-            print("Enviando relatório diário agendado...")
-            cryptos_for_report = [
-                {'symbol': symbol, 'change24h': data['change24h'], 'rsi': data['rsi'], 'signal': data['signal']}
-                for symbol, data in cryptos_data.items()
-            ]
-            telegram_service.send_daily_report(cryptos_for_report)
-            # Espera 60 segundos para evitar envio múltiplo no mesmo minuto
-            time.sleep(60)
-        time.sleep(10) # Verifica a cada 10 segundos
+        print("Enviando relatório agendado...")
+        cryptos_for_report = [
+            {'symbol': symbol, 'change24h': data['change24h'], 'rsi': data['rsi'], 'signal': data['signal']}
+            for symbol, data in cryptos_data.items()
+        ]
+        telegram_service.send_daily_report(cryptos_for_report)
+        # Espera 20 minutos (1200 segundos)
+        time.sleep(1200)
 
 def update_crypto_prices():
     """Atualiza os preços das criptomoedas em tempo real (simulado)"""
@@ -112,9 +109,9 @@ def update_crypto_prices():
 monitoring_thread = threading.Thread(target=update_crypto_prices, daemon=True)
 monitoring_thread.start()
 
-# Iniciar thread de relatório diário
-daily_report_thread = threading.Thread(target=schedule_daily_report, daemon=True)
-daily_report_thread.start()
+# Iniciar thread de relatório
+report_thread = threading.Thread(target=schedule_report, daemon=True)
+report_thread.start()
 
 # HTML da aplicação
 HTML_TEMPLATE = '''
@@ -128,7 +125,7 @@ HTML_TEMPLATE = '''
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100% ); color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .logo { font-size: 28px; font-weight: bold; background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -461,8 +458,8 @@ if __name__ == '__main__':
     print("=" * 60)
     print(f"✓ Telegram Token: {TELEGRAM_TOKEN[:20]}...")
     print(f"✓ Chat ID: {TELEGRAM_CHAT_ID}")
-    print(f"✓ Servidor iniciado em: http://localhost:5000")
+    print(f"✓ Servidor iniciado em: http://localhost:5000" )
     print("=" * 60)
     
-    app.run(debug=False, host='0.0.0.0', port=5000)
-
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
